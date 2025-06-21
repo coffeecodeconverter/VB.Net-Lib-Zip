@@ -315,7 +315,3 @@ Module ModuleZipper
 End Module
 ```
 
-                     Optional filter As String = "All files (*.*)|*.*",
-                     Optional title As String = "Select File(s)") As List(Of String)
-
-Function SelectFolder(Optional title As String = "Select Folder") As String
