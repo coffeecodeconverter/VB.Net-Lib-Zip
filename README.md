@@ -1,13 +1,6 @@
 # VB.Net-Lib-Zip
 VB.Net Lib - Zip / Unzip Asynchronously, with progress, and custom open file/folder dialogs for ease and flexibilitiy
 
-
-# Async Zip Module
-
-**AUTHOR:** CoffeeCodeConverter  
-**GITHUB:** https://github.com/coffeecodeconverter  
-**CREATION Date:** 21/06/2025
-
 ---
 
 ## Requirements
