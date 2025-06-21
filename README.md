@@ -42,6 +42,10 @@ Await UnzipAsync(Optional zipFilePath As String = Nothing,
                  Optional progress As IProgress(Of Integer) = Nothing) As Task(Of String)
 
 Function SelectFiles(Optional multiSelect As Boolean = True,
+                                Optional filter As String = "All files (*.*)|*.*",
+                                Optional title As String = "Select File(s)") As List(Of String)
+
+Function SelectFolder(Optional title As String = "Select Folder") 
 ```
 
 
