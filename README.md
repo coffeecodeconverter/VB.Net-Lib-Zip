@@ -51,8 +51,11 @@ Function SelectFolder(Optional title As String = "Select Folder")
 
 ## Full Module
 ```vbnet
+
+
 Imports System.IO
 Imports System.IO.Compression
+Imports System.Threading
 Imports System.Threading.Tasks
 Imports Microsoft.WindowsAPICodePack.Dialogs
 
@@ -64,12 +67,15 @@ Module ModuleZipper
     Public ModuleVersion_Zipper As String = "1.0.0.1"
 
 
+    ' v4 
     Public Async Function ZipAsync(Optional itemsToZip As IEnumerable(Of String) = Nothing,
                                Optional zipFilePath As String = Nothing,
-                               Optional progress As IProgress(Of Integer) = Nothing) As Task(Of String)
+                               Optional progress As IProgress(Of Integer) = Nothing, Optional callback As Action = Nothing) As Task(Of String)
 
         Try
             Debug.WriteLine("===== ZIP DEBUG START =====")
+
+            ' Prompt user to select files if none provided
             If itemsToZip Is Nothing OrElse Not itemsToZip.Any() Then
                 itemsToZip = SelectFiles(True, "All files (*.*)|*.*", "Select files or folders to ZIP")
                 Debug.WriteLine($"User selected {itemsToZip.Count()} item(s) to zip.")
@@ -78,12 +84,17 @@ Module ModuleZipper
                 Debug.WriteLine($"ItemsToZip passed in as parameter: {String.Join(";", itemsToZip)}")
             End If
 
+            ' Default filename suggestion
+            Dim defaultFileName = "Archive_" & DateTime.Now.ToString("yyyyMMdd_HHmmss") & ".zip"
+
+            ' Prompt for zip destination if none was provided
             If String.IsNullOrWhiteSpace(zipFilePath) Then
                 Using sfd As New SaveFileDialog()
                     sfd.Title = "Select ZIP output location"
                     sfd.Filter = "ZIP files (*.zip)|*.zip"
                     sfd.DefaultExt = "zip"
                     sfd.AddExtension = True
+                    sfd.FileName = defaultFileName
                     If sfd.ShowDialog() = DialogResult.OK Then
                         zipFilePath = sfd.FileName
                     Else
@@ -92,11 +103,30 @@ Module ModuleZipper
                 End Using
             End If
 
+            ' === Ensure zipFilePath is valid and includes a .zip file name ===
+            Dim fileNamePart As String = Path.GetFileName(zipFilePath)
+
+            If String.IsNullOrWhiteSpace(fileNamePart) OrElse Not fileNamePart.ToLower().EndsWith(".zip") Then
+                Debug.WriteLine("Provided path is missing a valid ZIP filename or has the wrong extension.")
+
+                ' Get directory or fallback to current folder
+                Dim dirPath As String = If(Directory.Exists(zipFilePath),
+                                       zipFilePath,
+                                       If(Not String.IsNullOrWhiteSpace(Path.GetDirectoryName(zipFilePath)),
+                                          Path.GetDirectoryName(zipFilePath),
+                                          Environment.CurrentDirectory))
+
+                ' Append default filename
+                zipFilePath = Path.Combine(dirPath, defaultFileName)
+                Debug.WriteLine($"Auto-corrected ZIP path: {zipFilePath}")
+            End If
+
             Debug.WriteLine($"ZIP output path: {zipFilePath}")
 
-            ' Run the CPU-heavy zipping in background thread
+            ' Run zipping operation on background thread
             Return Await Task.Run(Function()
                                       Try
+                                          ' Overwrite existing ZIP if it exists
                                           If File.Exists(zipFilePath) Then
                                               Debug.WriteLine($"Existing ZIP file found, deleting: {zipFilePath}")
                                               File.Delete(zipFilePath)
@@ -110,10 +140,8 @@ Module ModuleZipper
                                                   Debug.WriteLine($"Processing item: {item}")
 
                                                   If File.Exists(item) Then
-                                                      Debug.WriteLine($"Adding file: {item}")
                                                       AddFileToArchive(item, archive, Path.GetFileName(item))
                                                   ElseIf Directory.Exists(item) Then
-                                                      Debug.WriteLine($"Adding folder: {item}")
                                                       AddDirectoryToArchive(item, archive, Path.GetFileName(item))
                                                   Else
                                                       Debug.WriteLine($"Item not found or invalid: {item}")
@@ -125,7 +153,20 @@ Module ModuleZipper
                                           End Using
 
                                           Debug.WriteLine("===== ZIP COMPLETE =====")
+
+                                          Dim syncContext = SynchronizationContext.Current
+
+                                          ' After unzip completes:
+                                          If callback IsNot Nothing Then
+                                              If syncContext IsNot Nothing Then
+                                                  syncContext.Post(Sub() callback(), Nothing)
+                                              Else
+                                                  callback()
+                                              End If
+                                          End If
+
                                           Return "Zipping completed successfully."
+
                                       Catch zipEx As Exception
                                           Debug.WriteLine("ZIP TASK ERROR: " & zipEx.ToString())
                                           Return "ZIP failed during compression: " & zipEx.Message
@@ -146,7 +187,7 @@ Module ModuleZipper
     ' V3 
     Public Async Function UnzipAsync(Optional zipFilePath As String = Nothing,
                                  Optional extractToFolder As String = Nothing,
-                                 Optional progress As IProgress(Of Integer) = Nothing) As Task(Of String)
+                                 Optional progress As IProgress(Of Integer) = Nothing, Optional callback As Action = Nothing) As Task(Of String)
         Try
             Debug.WriteLine("===== UNZIP DEBUG START =====")
 
@@ -215,6 +256,18 @@ Module ModuleZipper
                                       End Using
 
                                       Debug.WriteLine("===== UNZIP COMPLETE =====")
+
+                                      Dim syncContext = SynchronizationContext.Current
+
+                                      ' After unzip completes:
+                                      If callback IsNot Nothing Then
+                                          If syncContext IsNot Nothing Then
+                                              syncContext.Post(Sub() callback(), Nothing)
+                                          Else
+                                              callback()
+                                          End If
+                                      End If
+
                                       Return "Unzipping completed successfully."
                                   End Function)
         Catch ex As Exception
@@ -307,8 +360,6 @@ Module ModuleZipper
             Return Nothing
         End Try
     End Function
-
-
 
 
 
