@@ -16,6 +16,9 @@ VB.Net Lib - Zip / Unzip Asynchronously, with progress, and custom open file/fol
 A comprehensive, asynchronous Zipping and Unzipping module that simplifies file compression and extraction with full progress reporting and robust error handling.  
 Includes built-in customizable fallback dialogs for file and folder selection, enabling seamless user interaction across different UI environments.
 
+<img width="828" height="536" alt="image" src="https://github.com/user-attachments/assets/8390cf25-bc41-4263-9559-2de0f8bdf2c9" />
+
+
 ---
 
 ## Key Features
